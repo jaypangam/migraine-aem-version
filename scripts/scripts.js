@@ -52,6 +52,7 @@ export function decorateMain(main) {
   buildAutoBlocks(main);
   decorateSections(main);
   decorateBlocks(main);
+  updateExternalLinks(main)
 }
 
 /**
@@ -103,6 +104,38 @@ async function loadLazy(doc) {
   sampleRUM('lazy');
   sampleRUM.observe(main.querySelectorAll('div[data-block-name]'));
   sampleRUM.observe(main.querySelectorAll('picture > img'));
+}
+
+/**
+ * Sets external target and rel for links in a container element.
+ * @param {Element} container The container element
+ */
+export function updateExternalLinks(container) {
+  const REFERERS = [
+    window.location.origin,
+
+  ];
+  
+  container.querySelectorAll('a[href]').forEach((a) => {
+    try {
+      const { origin, pathname, hash } = new URL(a.href, window.location.href);
+      const targetHash = hash && hash.startsWith('#_');
+      const isPDF = pathname.split('.').pop() === 'pdf';
+      if ((origin && origin !== window.location.origin && !targetHash) || isPDF) {
+        a.setAttribute('target', '_blank');
+        if (!REFERERS.includes(origin)) {
+          a.setAttribute('rel', 'noopener'); 
+          a.classList.add('ext');
+         }
+      } else if (targetHash) {
+        a.setAttribute('target', hash.replace('#', ''));
+        a.href = a.href.replace(hash, '');
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(`Invalid link in ${container}: ${a.href}`);
+    }
+  });
 }
 
 /**
